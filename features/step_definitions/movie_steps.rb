@@ -46,12 +46,9 @@ Given /^I am on the RottenPotatoes home page$/ do
 # Add a declarative step here for populating the DB with movies.
 
 Given /the following movies have been added to RottenPotatoes:/ do |movies_table|
-  pending  # Remove this statement when you finish implementing the test step
+  
   movies_table.hashes.each do |movie|
-    # Each returned movie will be a hash representing one row of the movies_table
-    # The keys will be the table headers and the values will be the row contents.
-    # Entries can be directly to the database with ActiveRecord methods
-    # Add the necessary Active Record call(s) to populate the database.
+    @movies = Movie.create!(movie)
   end
 end
 
@@ -59,16 +56,70 @@ When /^I have opted to see movies rated: "(.*?)"$/ do |arg1|
   # HINT: use String#split to split up the rating_list, then
   # iterate over the ratings and check/uncheck the ratings
   # using the appropriate Capybara command(s)
-  pending  #remove this statement after implementing the test step
+  all_args = ["G", "PG-13", "NC-17", "R", "PG"]
+  arg_array = arg1.gsub(/\s+/, "").split(",")
+  arg_array.each{|x| check('ratings_'<<x)}
+  all_args = all_args - arg_array
+  all_args.each{|x| uncheck('ratings_'<<x)}
+  click_button('Refresh')
 end
 
 Then /^I should see only movies rated: "(.*?)"$/ do |arg1|
-  pending  #remove this statement after implementing the test step
+    @i = 0
+    result = true
+    arg1 = arg1.gsub(/\s+/, "").split(",")
+    page.all('td').each do |x|
+        if ((@i-1) % 4) == 0 then
+            result = (arg1.include? x.text) && result
+        end
+        @i = @i + 1
+    end
+    expect(result).to be_truthy
 end
 
 Then /^I should see all of the movies$/ do
-  pending  #remove this statement after implementing the test step
+    result = false
+    @i = -1
+    
+    page.all('tr').each do |x|
+        @i = @i + 1
+    end
+    
+    if Movie.count() == @i then
+        result = true
+    end
+    
+    expect(result).to be_truthy
 end
 
+When /^I have selected the link to sort by "(.*?)"$/ do |arg1|
+    arg1 = arg1.gsub(/\s+/, "").downcase
+    if arg1 == "title" then
+        click_link('title_header')
+    elsif arg1 == "release_date" then
+        click_link('release_date_header')
+    end
+end
 
-
+Then /^I should see "(.*?)" before "(.*?)"$/ do |movie1, movie2| 
+    @i = 0
+    
+    result = false
+    
+    page.all('td').each do |x|
+        if (@i % 4) == 0 then
+            if x.text == movie1 then
+                @one_pos = @i
+            elsif x.text == movie2 then
+                @two_pos = @i
+            end
+        end
+        @i = @i + 1
+    end
+    
+    if @one_pos < @two_pos then
+        result = true
+    end
+    
+    expect(result).to be_truthy
+end
